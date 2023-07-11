@@ -12,11 +12,11 @@ type P4InfoHelper struct {
 	p4Info *p4info.P4Info
 }
 
-func NewP4InfoHelper(p4InfoFilePath string) (*P4InfoHelper, error) {	
+func NewP4InfoHelper(p4InfoFilePath string) (*P4InfoHelper, error) {
 	data, err := ioutil.ReadFile(p4InfoFilePath)
 	if err != nil {
 		return nil, err
-	}										
+	}
 
 	info := &p4info.P4Info{}
 	err = prototext.Unmarshal(data, info)
@@ -24,8 +24,8 @@ func NewP4InfoHelper(p4InfoFilePath string) (*P4InfoHelper, error) {
 		return nil, err
 	}
 
-	fmt.Printf("%v", info);
-	
+	fmt.Printf("%v", info)
+
 	return &P4InfoHelper{
 		p4Info: info,
 	}, nil
