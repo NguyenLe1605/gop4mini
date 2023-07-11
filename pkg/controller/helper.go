@@ -9,7 +9,7 @@ import (
 )
 
 type P4InfoHelper struct {
-	p4Info *p4info.P4Info
+	P4Info *p4info.P4Info
 }
 
 func NewP4InfoHelper(p4InfoFilePath string) (*P4InfoHelper, error) {
@@ -27,6 +27,6 @@ func NewP4InfoHelper(p4InfoFilePath string) (*P4InfoHelper, error) {
 	fmt.Printf("%v", info)
 
 	return &P4InfoHelper{
-		p4Info: info,
+		P4Info: info,
 	}, nil
 }

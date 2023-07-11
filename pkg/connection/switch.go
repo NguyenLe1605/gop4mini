@@ -3,6 +3,7 @@ package connection
 import (
 	"context"
 	"io"
+	"io/ioutil"
 	"log"
 
 	p4info "github.com/p4lang/p4runtime/go/p4/config/v1"
@@ -14,6 +15,8 @@ import (
 type SwitchConnection interface {
 	io.Closer
 	MasterArbitrationUpdate(ctx context.Context, dryRun bool) (*p4api.StreamMessageResponse_Arbitration, error)
+	buildDeviceConfig(file string) ([]byte, error)
+	SetForwardingPipelineConfig(ctx context.Context, dryRun bool, p4Info *p4info.P4Info, configFile string) (*p4api.SetForwardingPipelineConfigResponse, error)
 }
 
 func NewSwitchConnection(name string, addr string, deviceID uint64, protoDumpFile string) (SwitchConnection, error) {
@@ -97,6 +100,31 @@ func (s *switchConnection) MasterArbitrationUpdate(ctx context.Context, dryRun b
 			return v, nil
 		}
 	}
+}
+
+func (s *switchConnection) SetForwardingPipelineConfig(ctx context.Context, dryRun bool, p4Info *p4info.P4Info, configFile string) (*p4api.SetForwardingPipelineConfigResponse, error) {
+	deviceConfig, err := s.buildDeviceConfig(configFile)
+	if err != nil {
+		return nil, err
+	}
+
+	request := &p4api.SetForwardingPipelineConfigRequest{
+		ElectionId: &p4api.Uint128{High: 0, Low: 1},
+		DeviceId: s.deviceID,
+		Config: &p4api.ForwardingPipelineConfig{},
+		Action: p4api.SetForwardingPipelineConfigRequest_VERIFY_AND_COMMIT,
+	}
+	request.Config.P4Info = p4Info
+	request.Config.P4DeviceConfig = deviceConfig
+
+	if dryRun {
+		log.Printf("P4 runtime SetForwardingPipelineConfig request: %v\n", request)
+	}
+	return s.p4runtimeClient.SetForwardingPipelineConfig(ctx, request)
+}
+
+func (s *switchConnection) buildDeviceConfig(file string) ([]byte, error) {
+	return ioutil.ReadFile(file)
 }
 
 func (s *switchConnection) Close() error {
