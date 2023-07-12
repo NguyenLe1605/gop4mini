@@ -28,13 +28,13 @@ func NewSwitchConnection(name string, addr string, deviceID uint64, protoDumpFil
 	p4cl := p4api.NewP4RuntimeClient(conn)
 
 	return &switchConnection{
-		grpcClient: conn,
+		grpcClient:      conn,
 		p4runtimeClient: p4cl,
-		name: name,
-		addr: addr,
-		deviceID: deviceID,
-		protoDumpFile: protoDumpFile,
-		p4info: &p4info.P4Info{},
+		name:            name,
+		addr:            addr,
+		deviceID:        deviceID,
+		protoDumpFile:   protoDumpFile,
+		p4info:          &p4info.P4Info{},
 	}, nil
 }
 
@@ -69,7 +69,7 @@ func (s *switchConnection) MasterArbitrationUpdate(ctx context.Context, dryRun b
 
 	request := &p4api.StreamMessageRequest{
 		Update: &p4api.StreamMessageRequest_Arbitration{Arbitration: &p4api.MasterArbitrationUpdate{
-			DeviceId: s.deviceID,
+			DeviceId:   s.deviceID,
 			ElectionId: electionID,
 		}},
 	}
@@ -92,7 +92,7 @@ func (s *switchConnection) MasterArbitrationUpdate(ctx context.Context, dryRun b
 		switch v := in.Update.(type) {
 		case *p4api.StreamMessageResponse_Arbitration:
 			if dryRun {
- 				log.Printf("Received arbitration response %v\n", v)
+				log.Printf("Received arbitration response %v\n", v)
 			}
 			if err != nil {
 				return nil, err
@@ -110,9 +110,9 @@ func (s *switchConnection) SetForwardingPipelineConfig(ctx context.Context, dryR
 
 	request := &p4api.SetForwardingPipelineConfigRequest{
 		ElectionId: &p4api.Uint128{High: 0, Low: 1},
-		DeviceId: s.deviceID,
-		Config: &p4api.ForwardingPipelineConfig{},
-		Action: p4api.SetForwardingPipelineConfigRequest_VERIFY_AND_COMMIT,
+		DeviceId:   s.deviceID,
+		Config:     &p4api.ForwardingPipelineConfig{},
+		Action:     p4api.SetForwardingPipelineConfigRequest_VERIFY_AND_COMMIT,
 	}
 	request.Config.P4Info = p4Info
 	request.Config.P4DeviceConfig = deviceConfig

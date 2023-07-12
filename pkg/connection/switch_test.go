@@ -31,7 +31,6 @@ func TestMasterArbitrationUpdate(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, s1Resp)
 
-
 	s2Resp, err := s2.MasterArbitrationUpdate(context.Background(), true)
 	require.NoError(t, err)
 	require.NotNil(t, s2Resp)
