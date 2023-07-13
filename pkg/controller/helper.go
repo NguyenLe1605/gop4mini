@@ -1,11 +1,10 @@
 package controller
 
 import (
-	"encoding/binary"
 	"fmt"
 	"io/ioutil"
-	"net"
 
+	"github.com/NguyenLe1605/gop4mini/pkg/utils"
 	p4info "github.com/p4lang/p4runtime/go/p4/config/v1"
 	p4api "github.com/p4lang/p4runtime/go/p4/v1"
 	"google.golang.org/protobuf/encoding/prototext"
@@ -27,7 +26,6 @@ func NewP4InfoHelper(p4InfoFilePath string) (*P4InfoHelper, error) {
 		return nil, err
 	}
 
-	fmt.Printf("%+v\n", info)
 
 	return &P4InfoHelper{
 		P4Info: info,
@@ -57,7 +55,6 @@ func (p *P4InfoHelper) GetMatchFieldByName(tableName string, name string) (*p4in
 		pre := table.Preamble
 		if pre.Name == tableName {
 			for _, mf := range table.MatchFields {
-				fmt.Printf("%v\n", mf)
 				if mf.Name == name {
 					return mf, nil
 				}
@@ -78,20 +75,28 @@ func (p *P4InfoHelper) GetMatchFieldPb(
 		return nil, err
 	}
 
+	bitwidth := p4InfoMatch.Bitwidth
+
 	match := &p4api.FieldMatch{
 		FieldId: p4InfoMatch.Id,
 	}
 
 	switch p4InfoMatch.GetMatchType() {
 	case p4info.MatchField_EXACT:
-		val, _ := value.([]byte)
+		val, err := utils.Encode(value, int(bitwidth))
+		if err != nil {
+			return nil, err
+		}
 		exact := &p4api.FieldMatch_Exact{
 			Value: val,
 		}
 		match.FieldMatchType = &p4api.FieldMatch_Exact_{Exact: exact}
 	case p4info.MatchField_LPM:
-		tup, _ := value.(struct{net.IP; int32})
-		val := []byte(tup.IP)
+		tup, _ := value.(struct{string; int32})
+		val, err := utils.Encode(tup.string, int(bitwidth))
+		if err != nil {
+			return nil, err
+		}
 		prefixLen := tup.int32
 		lpm := &p4api.FieldMatch_LPM{
 			Value: val,
@@ -121,21 +126,23 @@ func (p *P4InfoHelper) GetActionParam(actionName string, paramName string) *p4in
 func (p *P4InfoHelper) GetActionParamPb(
 	actionName string, 
 	paramName string, 
-	value interface{},
-) *p4api.Action_Param {
+	value any,
+) (*p4api.Action_Param, error) {
 	p4InfoParam := p.GetActionParam(actionName, paramName)
 	paramId := p4InfoParam.Id
 	actionParam := &p4api.Action_Param{
 		ParamId: paramId,
 	}
+
+	bitwidth := p4InfoParam.Bitwidth
 	
-	if num, ok := value.(uint16); ok {
-		buf := make([]byte, 2)
-		binary.BigEndian.PutUint16(buf, num)
-		actionParam.Value = buf
+	val, err := utils.Encode(value, int(bitwidth))
+	if err != nil {
+		return nil, err
 	}
 	
-	return actionParam
+	actionParam.Value = val
+	return actionParam, nil
 }
 
 
@@ -144,7 +151,7 @@ func (p *P4InfoHelper) BuildTableEntry(
 	matchFields map[string]interface{},
 	actionName string,
 	actionParams map[string]interface{},
-) *p4api.TableEntry {
+) (*p4api.TableEntry, error) {
 	tableId := p.GetTableId(tableName)
 	matches := make([]*p4api.FieldMatch, 0)
 	for matchFieldName, value := range matchFields {
@@ -154,7 +161,10 @@ func (p *P4InfoHelper) BuildTableEntry(
 
 	params := make([]*p4api.Action_Param, 0)
 	for fieldName, value := range actionParams {
-		param := p.GetActionParamPb(actionName, fieldName, value)
+		param, err := p.GetActionParamPb(actionName, fieldName, value)
+		if err != nil {
+			return nil, err
+		}
 		params = append(params, param)
 	}
 	actionId := p.GetActionId(actionName)
@@ -171,6 +181,5 @@ func (p *P4InfoHelper) BuildTableEntry(
 			},
 		},
 	}
-	fmt.Printf("%v\n", tableEntry)
-	return tableEntry
+	return tableEntry, nil
 }

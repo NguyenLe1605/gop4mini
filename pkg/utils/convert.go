@@ -70,6 +70,29 @@ func DecodeNum(number []byte) int64 {
 	return res
 }
 
+func CastToInt64(value any) (int64, error) {
+	switch v := value.(type) {
+	case int:
+		return int64(v), nil
+	case int16:
+		return int64(v), nil
+	case int32:
+		return int64(v), nil
+	case int64:
+		return int64(v), nil
+	case uint:
+		return int64(v), nil
+	case uint16:
+		return int64(v), nil
+	case uint32:
+		return int64(v), nil
+	case uint64:
+		return int64(v), nil
+	default:
+		return int64(0), fmt.Errorf("unsupported integer type")
+	}
+}
+
 func Encode(x any, bitwdith int) ([]byte, error) {
 	// Tries to infer the type of `x` and encode it
 	byteLen := BitWidthToBytes(bitwdith)
@@ -88,8 +111,12 @@ func Encode(x any, bitwdith int) ([]byte, error) {
 			// Assume that the string is already encoded
 			encodedBytes = []byte(x)
 		}
-	case int64:
-		encodedBytes, err = EncodeNum(x, bitwdith)
+	case int, int16, int32, int64, uint, uint16, uint32, uint64:
+		x64, err := CastToInt64(x)
+		if err != nil {
+			return nil, err
+		}
+		encodedBytes, err = EncodeNum(x64, bitwdith)
 		if err != nil {
 			return nil, err
 		}
