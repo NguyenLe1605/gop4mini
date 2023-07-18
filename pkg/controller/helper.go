@@ -26,7 +26,6 @@ func NewP4InfoHelper(p4InfoFilePath string) (*P4InfoHelper, error) {
 		return nil, err
 	}
 
-
 	return &P4InfoHelper{
 		P4Info: info,
 	}, nil
@@ -64,7 +63,6 @@ func (p *P4InfoHelper) GetMatchFieldByName(tableName string, name string) (*p4in
 	return nil, fmt.Errorf("%s has no attribute %s", tableName, name)
 }
 
-
 func (p *P4InfoHelper) GetMatchFieldPb(
 	tableName string,
 	matchFieldName string,
@@ -92,14 +90,17 @@ func (p *P4InfoHelper) GetMatchFieldPb(
 		}
 		match.FieldMatchType = &p4api.FieldMatch_Exact_{Exact: exact}
 	case p4info.MatchField_LPM:
-		tup, _ := value.(struct{string; int32})
+		tup, _ := value.(struct {
+			string
+			int32
+		})
 		val, err := utils.Encode(tup.string, int(bitwidth))
 		if err != nil {
 			return nil, err
 		}
 		prefixLen := tup.int32
 		lpm := &p4api.FieldMatch_LPM{
-			Value: val,
+			Value:     val,
 			PrefixLen: prefixLen,
 		}
 		match.FieldMatchType = &p4api.FieldMatch_Lpm{Lpm: lpm}
@@ -120,12 +121,12 @@ func (p *P4InfoHelper) GetActionParam(actionName string, paramName string) *p4in
 			}
 		}
 	}
-	return nil	
+	return nil
 }
 
 func (p *P4InfoHelper) GetActionParamPb(
-	actionName string, 
-	paramName string, 
+	actionName string,
+	paramName string,
 	value any,
 ) (*p4api.Action_Param, error) {
 	p4InfoParam := p.GetActionParam(actionName, paramName)
@@ -135,16 +136,15 @@ func (p *P4InfoHelper) GetActionParamPb(
 	}
 
 	bitwidth := p4InfoParam.Bitwidth
-	
+
 	val, err := utils.Encode(value, int(bitwidth))
 	if err != nil {
 		return nil, err
 	}
-	
+
 	actionParam.Value = val
 	return actionParam, nil
 }
-
 
 func (p *P4InfoHelper) BuildTableEntry(
 	tableName string,
@@ -170,11 +170,11 @@ func (p *P4InfoHelper) BuildTableEntry(
 	actionId := p.GetActionId(actionName)
 	action := &p4api.Action{
 		ActionId: uint32(actionId),
-		Params: params,
+		Params:   params,
 	}
 	tableEntry := &p4api.TableEntry{
 		TableId: uint32(tableId),
-		Match: matches,
+		Match:   matches,
 		Action: &p4api.TableAction{
 			Type: &p4api.TableAction_Action{
 				Action: action,

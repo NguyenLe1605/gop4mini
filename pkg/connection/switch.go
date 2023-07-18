@@ -17,6 +17,8 @@ type SwitchConnection interface {
 	MasterArbitrationUpdate(ctx context.Context, dryRun bool) (*p4api.StreamMessageResponse_Arbitration, error)
 	buildDeviceConfig(file string) ([]byte, error)
 	SetForwardingPipelineConfig(ctx context.Context, dryRun bool, p4Info *p4info.P4Info, configFile string) (*p4api.SetForwardingPipelineConfigResponse, error)
+	WriteTableEntry(ctx context.Context, entry *p4api.TableEntry, dryRun bool) (*p4api.WriteResponse, error)
+	GetName() string
 }
 
 func NewSwitchConnection(name string, addr string, deviceID uint64, protoDumpFile string) (SwitchConnection, error) {
@@ -57,6 +59,10 @@ type switchConnection struct {
 	p4runtimeClient p4api.P4RuntimeClient
 	p4info          *p4info.P4Info
 	protoDumpFile   string
+}
+
+func (s *switchConnection) GetName() string {
+	return s.name
 }
 
 func (s *switchConnection) MasterArbitrationUpdate(ctx context.Context, dryRun bool) (*p4api.StreamMessageResponse_Arbitration, error) {
@@ -120,7 +126,8 @@ func (s *switchConnection) SetForwardingPipelineConfig(ctx context.Context, dryR
 	if dryRun {
 		log.Printf("P4 runtime SetForwardingPipelineConfig request: %v\n", request)
 	}
-	return s.p4runtimeClient.SetForwardingPipelineConfig(ctx, request)
+	rsp, err := s.p4runtimeClient.SetForwardingPipelineConfig(ctx, request)
+	return rsp, err
 }
 
 func (s *switchConnection) buildDeviceConfig(file string) ([]byte, error) {
@@ -129,6 +136,40 @@ func (s *switchConnection) buildDeviceConfig(file string) ([]byte, error) {
 
 func (s *switchConnection) Close() error {
 	return s.grpcClient.Close()
+}
+
+func (s *switchConnection) WriteTableEntry(ctx context.Context, entry *p4api.TableEntry, dryRun bool) (*p4api.WriteResponse, error) {
+	tableEntity := &p4api.Entity_TableEntry{
+		TableEntry: entry,
+	}
+
+	entity := &p4api.Entity{
+		Entity: tableEntity,
+	}
+
+	update := &p4api.Update{
+		Entity: entity,
+	}
+
+	if entry.IsDefaultAction {
+		update.Type = p4api.Update_MODIFY
+	} else {
+		update.Type = p4api.Update_INSERT
+	}
+
+	request := &p4api.WriteRequest{
+		DeviceId:   s.deviceID,
+		ElectionId: &p4api.Uint128{High: 0, Low: 1},
+	}
+
+	request.Updates = append(request.Updates, update)
+
+	if dryRun {
+		log.Printf("P4Runtime Write: %+v\n", request)
+	}
+
+	rsp, err := s.p4runtimeClient.Write(ctx, request)
+	return rsp, err
 }
 
 var _ SwitchConnection = &switchConnection{}

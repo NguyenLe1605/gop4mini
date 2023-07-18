@@ -48,15 +48,15 @@ func BitWidthToBytes(bitwidth int) int {
 }
 
 func EncodeNum(number int64, bitWidth int) ([]byte, error) {
-	if number >= 1 << bitWidth {
+	if number >= 1<<bitWidth {
 		return nil, fmt.Errorf("number, %d, does not fit in %d bits", number, bitWidth)
 	}
 	byteLen := BitWidthToBytes(bitWidth)
 	bytes := make([]byte, byteLen)
-	for i := 0 ; i < byteLen; i++ {
-		bytes[byteLen - i - 1] = byte(number >> (i * 8))
+	for i := 0; i < byteLen; i++ {
+		bytes[byteLen-i-1] = byte(number >> (i * 8))
 	}
-	
+
 	return bytes, nil
 }
 
@@ -64,7 +64,7 @@ func DecodeNum(number []byte) int64 {
 	byteLen := len(number)
 	var res int64 = 0
 	for i := 0; i < byteLen; i++ {
-		res |= int64(number[byteLen - i - 1]) << (i * 8)
+		res |= int64(number[byteLen-i-1]) << (i * 8)
 	}
 
 	return res
@@ -122,8 +122,8 @@ func Encode(x any, bitwdith int) ([]byte, error) {
 		}
 	default:
 		return nil, fmt.Errorf("encoding objects of %T is not support", x)
-	} 
-	if (len(encodedBytes) != byteLen) {
+	}
+	if len(encodedBytes) != byteLen {
 		return nil, fmt.Errorf("can not convert into bytes with bitwidth %d", bitwdith)
 	}
 	return encodedBytes, nil
