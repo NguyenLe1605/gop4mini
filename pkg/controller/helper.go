@@ -1,3 +1,4 @@
+// Helper class to load p4info files, get value from p4 protobuf object and create table entry. 
 package controller
 
 import (
